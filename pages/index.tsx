@@ -1,35 +1,52 @@
-import { GetServerSideProps } from "next";
-import React, { FunctionComponent } from "react";
-import SpotifyWebApi from "spotify-web-api-node";
-import NavigationBar from "../components/NavigationBar";
-import { credentials, scopes } from "../lib/spotify_api";
-import useLogin from "../lib/useLogin";
+import { FunctionComponent } from "react";
+import { useSpotify } from "../lib/useSpotify";
 
-const Home: FunctionComponent<UrlProps> = ({ url, code }) => {
-  const accessToken = useLogin(code);
+const SongsPage: FunctionComponent = () => {
+  const { songs, error, user, songOptions, setSongOptions } = useSpotify();
+
+  if (error) {
+    return (
+      <>
+        <p>{error}</p>
+      </>
+    );
+  }
 
   return (
-    <div className="items-center">
-      <NavigationBar url={url} accessToken={accessToken}></NavigationBar>
-      <p>{accessToken}</p>
-      <main>{/* main section with most played artists or songs */}</main>
-    </div>
+    <>
+      {user?.name}
+      <select
+        name="time_range"
+        id="time_range"
+        className="m-10"
+        onChange={(event) => {
+          setSongOptions({ ...songOptions, time_range: event.target.value });
+        }}
+      >
+        <option value="short_term" defaultValue="true">
+          Short
+        </option>
+        <option value="medium_term">Medium</option>
+        <option value="long_term">Long</option>
+      </select>
+
+      <div>
+        {songs.map((song, index) => (
+          // <div className="flex flex-row p-1 justify-center items-center">
+          <div>
+            {index}
+            <p>{"song name: " + song.name}</p>
+            {"song artists: "}
+            {song.artists.map((artist) => (
+              <p>{artist.name}</p>
+            ))}
+            <p>{song.uri}</p>
+            <br />
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
 
-interface UrlProps {
-  url: string;
-  code?: string;
-}
-
-export const getServerSideProps: GetServerSideProps<UrlProps> = async (
-  context
-) => {
-  const code = (context.query.code as string) ?? null;
-  const api = new SpotifyWebApi(credentials);
-  const url = api.createAuthorizeURL(scopes, "state");
-
-  return { props: { url: url, code: code } };
-};
-
-export default Home;
+export default SongsPage;

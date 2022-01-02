@@ -1,6 +1,12 @@
-export const scopes = ["user-top-read"];
-export const credentials = {
-  clientId: "f7b926017ae445d5aeb76a92a6acd7a8",
-  clientSecret: "86bcda62f23a450cb1262a1d935b2cb7",
-  redirectUri: "http://localhost:3000",
+import SpotifyWebApi from "spotify-web-api-node";
+
+const scopes = ["user-top-read"];
+const credentials = {
+  clientId: process.env.CLIENT_ID,
+  clientSecret: process.env.CLIENT_SECRET,
+  redirectUri: process.env.NEXTAUTH_URL,
 };
+
+const spotifyApi = new SpotifyWebApi(credentials);
+
+export {scopes, credentials, spotifyApi}

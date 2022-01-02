@@ -40,5 +40,4 @@ export default async function songs(req: NextApiRequest, res: NextApiResponse) {
     console.log(err);
     res.status(400).json({ error: "error getting songs" });
   }
-  console.log(limit, offset, time_range);
 }
