@@ -1,33 +1,61 @@
 import axios from "axios";
-import { User } from "next-auth";
-import { useSession } from "next-auth/react";
+import { Session } from "next-auth";
 import { useEffect, useState } from "react";
 
-interface songOptions {
+interface TopItemsOptions {
   limit?: number;
   offset?: number;
   time_range?: string;
 }
 
-function useSpotify() {
+function useSpotifyArtists(
+  session: Session | undefined,
+  options: TopItemsOptions
+) {
+  const [artists, setArtists] = useState<SpotifyApi.ArtistObjectFull[]>([]);
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    if (session) {
+      axios
+        .get("http://localhost:3000/api/artists", {
+          params: {
+            token: session.accessToken,
+            limit: options.limit,
+            offset: options.offset,
+            time_range: options.time_range,
+          },
+        })
+        .then((value) => {
+          setArtists(value.data.artists);
+          setError(null);
+        })
+        .catch((err) => {
+          setArtists([]);
+          setError(JSON.stringify(err.data));
+        });
+    } else {
+      setArtists([]);
+    }
+  }, [session, options]);
+  return {
+    artists,
+    error,
+  };
+}
+
+function useSpotifySongs(session: Session, options: TopItemsOptions) {
   const [songs, setSongs] = useState<SpotifyApi.TrackObjectFull[]>([]);
-  const [error, setError] = useState();
-  const [user, setUser] = useState<User>();
-  const [songOptions, setSongOptions] = useState<songOptions>({
-    limit: 50,
-    offset: 0,
-    time_range: "short_term",
-  });
-  const { data: session } = useSession();
+  const [error, setError] = useState<string>();
   useEffect(() => {
     if (session) {
       axios
         .get("http://localhost:3000/api/songs", {
           params: {
             token: session.accessToken,
-            limit: songOptions.limit,
-            offset: songOptions.offset,
-            time_range: songOptions.time_range,
+            limit: options.limit,
+            offset: options.offset,
+            time_range: options.time_range,
           },
         })
         .then((value) => {
@@ -36,15 +64,16 @@ function useSpotify() {
         })
         .catch((err) => {
           setSongs([]);
-          setError(err.data.error);
+          setError(JSON.stringify(err.data));
         });
-      setUser({ ...session.user, id: "" });
     } else {
       setSongs([]);
-      setUser({ name: "no user", id: "" });
     }
-  }, [session, songOptions]);
-  return { songs, error, user, songOptions, setSongOptions };
+  }, [session, options]);
+  return {
+    songs,
+    error,
+  };
 }
 
-export { useSpotify };
+export { useSpotifySongs, useSpotifyArtists };

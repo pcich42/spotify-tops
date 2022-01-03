@@ -7,8 +7,20 @@ async function refreshAccessToken(token: JWT) {
   try {
     spotifyApi.setAccessToken(token.accessToken as string);
     spotifyApi.setRefreshToken(token.refreshToken as string);
-  } catch (error) {}
-  return {};
+
+    const response = await spotifyApi.refreshAccessToken();
+    console.log("refreshing token");
+    return {
+      ...token,
+      accessToken: response.body.access_token,
+      refreshAccessToken: response.body.refresh_token ?? token.refreshToken,
+      accessTokenExpires: Date.now() + response.body.expires_in * 1000,
+    };
+  } catch (error) {
+    console.log("error refreshing token");
+    console.log(error)
+    return token;
+  }
 }
 
 export default NextAuth({
@@ -31,32 +43,36 @@ export default NextAuth({
       //  ktory potem dodaje to token, który jest zwracany w kolejnych jwt
 
       // initial sign in
-      // if (account && user) {
-      //   return {
-      //     ...token,
-      //     accessToken: account.access_token,
-      //     refreshToken: account.refresh_token,
-      //     accessTokenExpires: account.expires_at * 1000, // miliseconds,
-      //   };
-      // }
+      if (account && user) {
+        console.log("initial sign in");
+        return {
+          ...token,
+          user,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          accessTokenExpires: account.expires_at * 1000, // miliseconds,
+        };
+      }
       // // Return previous token if the access token has not expired yet
-      // if (Date.now() < token.accessTokenExpires) {
-      //   return token;
-      // }
+      if (Date.now() < token.accessTokenExpires) {
+        console.log("passing through");
+        return token;
+      }
 
-      // // Access token has expired, try to update it
-      // return await refreshAccessToken(token);
+      // Access token has expired, try to update it
+      return await refreshAccessToken(token);
 
       // if account exists (sign in) - get the access_token from it and attach it to the jwt token
-      if (account && user) {
-        return { ...token, accessToken: account.access_token, user };
-      }
-      // otherwise just return the previous token
-      else return token;
+      // if (account && user) {
+      //   return { ...token, accessToken: account.access_token, user, accessToken };
+      // }
+
+      // // otherwise just return the previous token
+      // else return token;
     },
     async session({ session, token }) {
       session.user = token.user;
-      // session.error = token.error;
+      session.error = token.error;
       session.accessToken = token.accessToken;
 
       return session;
