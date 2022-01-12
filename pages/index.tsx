@@ -1,95 +1,96 @@
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { FunctionComponent, useState } from "react";
-import { useSpotifyArtists, useSpotifySongs } from "../lib/useSpotify";
+import {
+  Button,
+  Col,
+  Container,
+  FormSelect,
+  Nav,
+  Navbar,
+  NavbarBrand,
+  Row,
+} from "react-bootstrap";
+import { Artists } from "../components/Artists";
+import { Songs } from "../components/Songs";
 
 const SongsPage: FunctionComponent = () => {
   const { data: session } = useSession();
 
-  const [options, setOptions] = useState({
+  const [options, setOptions] = useState<TopItemsOptions>({
     limit: 50,
     offset: 0,
     time_range: "short_term",
   });
-  const { songs, error: songsError } = useSpotifySongs(session, options);
-  const { artists, error: artistsError } = useSpotifyArtists(session, options);
+
   const [which, setWhich] = useState<"songs" | "artists">("artists");
 
-  if (songsError || artistsError) {
+  const username = session?.user?.name;
+
+  if (!session?.user) {
     return (
       <>
-        <p>{songsError}</p>
-        <p>{artistsError}</p>
+        <Button variant="secondary">
+          <Link href="api/auth/signin">
+            <a> Please log in</a>
+          </Link>
+        </Button>
       </>
     );
   }
 
-  const username = session?.user?.name;
-
   return (
     <>
-      <button
-        className="bg-green-400 rounded p-2 mx-5"
-        onClick={() => {
-          setWhich(which === "songs" ? "artists" : "songs");
-        }}
-      >
-        change to {which === "songs" ? "artists" : "songs"}
-      </button>
-      {username || "no user"}
-      <select
-        name="time_range"
-        id="time_range"
-        className="m-10 p-2"
-        onChange={(event) => {
-          setOptions({ ...options, time_range: event.target.value });
-        }}
-      >
-        <option value="short_term" defaultValue="true">
-          Short
-        </option>
-        <option value="medium_term">Medium</option>
-        <option value="long_term">Long</option>
-      </select>
-
-      {which === "songs" ? (
-        <div className="mx-5">
-          <h1 className="font-bold">Your top songs</h1>
-          {songs.map((song, index) => (
-            // <div className="flex flex-row p-1 justify-center items-center">
-            <div>
-              <p>
-                {index + 1 + ": song name: "}
-                <span className="font-bold">{song.name}</span>
-              </p>
-              {"song artists: "}
-              <p>{getArtistsNames(song.artists)}</p>
-              <p>{song.uri}</p>
-              <br />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="mx-5">
-          <h1 className="font-bold">Your top artists</h1>
-          {artists.map((artist, index) => (
-            <div>
-              <p>
-                {index + 1 + ": artists name: "}
-                <span className="font-bold">{artist.name}</span>
-              </p>
-              <br />
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="bg-dark">
+        <Navbar bg="success" variant="dark">
+          <Container>
+            <Nav className="me-auto">
+              <NavbarBrand href="#">Spotify Tops</NavbarBrand>
+              <Navbar.Text> {username || "no user"}</Navbar.Text>
+            </Nav>
+          </Container>
+        </Navbar>
+        <Container className="mx-auto">
+          <Row>
+            <Col>
+              {/* <Container className="w-50">
+              </Container> */}
+                <Button
+                  variant="success m-2"
+                  onClick={() => {
+                    setWhich(which === "songs" ? "artists" : "songs");
+                  }}
+                >
+                  change to {which === "songs" ? "artists" : "songs"}
+                </Button>
+                <FormSelect
+                  onChange={(event) => {
+                    const new_time_range = event.target.value as
+                      | "short_term"
+                      | "medium_term"
+                      | "long_term";
+                    setOptions({ ...options, time_range: new_time_range });
+                  }}
+                >
+                  <option value="short_term" defaultValue="true">
+                    Short
+                  </option>
+                  <option value="medium_term">Medium</option>
+                  <option value="long_term">Long</option>
+                </FormSelect>
+            </Col>
+            <Col lg={8}>
+              {which === "songs" ? (
+                <Songs options={options} />
+              ) : (
+                <Artists options={options} />
+              )}
+            </Col>
+          </Row>
+        </Container>
+      </div>
     </>
   );
 };
-
-function getArtistsNames(artists: SpotifyApi.ArtistObjectSimplified[]): string {
-  return artists
-    .map((artist) => artist.name)
-    .reduce((prev, next) => `${prev}, ${next}`);
-}
 
 export default SongsPage;
